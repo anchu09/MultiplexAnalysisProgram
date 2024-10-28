@@ -1,0 +1,49 @@
+# ── Data directories (kept locally, not tracked in git) ──────────────────────
+# Network mounts and local data paths
+\\*
+//*
+original_database/
+semi_preprocessed_signals/
+sliced_signals/
+results/
+results_*/
+/data/
+notebooks/results_spatial_analysis/
+notebooks/data/
+results_hne/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+**/.idea/
+.vscode/
+*.swp
+*.rao
+*.db
+*.rar
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Tool caches ───────────────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── Large binary outputs (not docs/images) ────────────────────────────────────
+docs/images/raw_extracted/
+# docs/images/ is intentionally tracked (pipeline figures for README)
