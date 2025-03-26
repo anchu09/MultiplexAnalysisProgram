@@ -1,0 +1,31 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: ^(notebooks|groovy)/
+      - id: ruff-format
+        exclude: ^(notebooks|groovy)/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        args:
+          - --no-site-packages
+          - --explicit-package-bases
+        additional_dependencies: [numpy, pandas, scipy]
+        exclude: ^(notebooks|groovy|hne)/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(notebooks|groovy)/
+      - id: end-of-file-fixer
+        exclude: ^(notebooks|groovy)/
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements
+        exclude: ^(notebooks|groovy)/

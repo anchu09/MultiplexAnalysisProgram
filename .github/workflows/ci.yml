@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test-if:
+    name: Lint & IF Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies (base + dev)
+        run: uv sync --group dev --no-install-project
+
+      - name: Set up package import path
+        run: |
+          ln -sf "$(pwd)" "$(dirname $(pwd))/multiplex_pipeline"
+          echo "PYTHONPATH=$(dirname $(pwd))" >> $GITHUB_ENV
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Format check with ruff
+        run: uv run ruff format --check .
+
+      - name: Type check with mypy (IF pipeline)
+        run: |
+          uv run mypy analysis/ preprocessing/ visualization/ io/ utils/ \
+            schema.py config.py domain.py --ignore-missing-imports
+
+      - name: Validate notebook format
+        run: |
+          uv run python -c "
+          import nbformat, pathlib, sys
+          errors = []
+          for nb in pathlib.Path('notebooks').glob('*.ipynb'):
+              try:
+                  nbformat.validate(nbformat.read(nb, as_version=4))
+              except nbformat.ValidationError as e:
+                  errors.append(f'{nb}: {e}')
+          if errors:
+              print('\n'.join(errors)); sys.exit(1)
+          print(f'All {len(list(pathlib.Path(\"notebooks\").glob(\"*.ipynb\")))} notebooks valid.')
+          "
+
+      - name: Run IF pipeline tests
+        run: |
+          uv run pytest tests/ -v --tb=short \
+            --ignore=tests/test_hne_metrics.py \
+            --ignore=tests/test_hne_models.py \
+            --ignore=tests/test_hne_preprocessing.py \
+            --cov=. --cov-report=term-missing
+
+  test-hne:
+    name: H&E Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies (base + dev + ml)
+        run: uv sync --group dev --group ml --no-install-project
+
+      - name: Set up package import path
+        run: |
+          ln -sf "$(pwd)" "$(dirname $(pwd))/multiplex_pipeline"
+          echo "PYTHONPATH=$(dirname $(pwd))" >> $GITHUB_ENV
+
+      - name: Type check with mypy (H&E modules)
+        run: uv run mypy hne/ --ignore-missing-imports
+
+      - name: Run H&E tests
+        run: |
+          uv run pytest tests/test_hne_metrics.py \
+            tests/test_hne_models.py \
+            tests/test_hne_preprocessing.py \
+            -v --tb=short
