@@ -1,0 +1,40 @@
+# ── Data directories (kept locally, not tracked in git) ──────────────────────
+# Network mounts and local data paths
+\\*
+//*
+original_database/
+semi_preprocessed_signals/
+sliced_signals/
+results/
+notebooks/results_spatial_analysis/
+notebooks/data/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+**/.idea/
+.vscode/
+*.swp
+*.rao
+*.db
+*.rar
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Large binary outputs (not docs/images) ────────────────────────────────────
+docs/images/raw_extracted/
+# SVG/CSV outputs from the pipeline go into results/ which is already ignored
+# docs/images/ is intentionally tracked (pipeline figures for README)

@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multiplex-pipeline"
+version = "1.0.0"
+description = "Spatial biology pipeline for multiplex fluorescence microscopy and H&E invasion-front detection"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Daniel Anchuela Cantarero", email = "dani.anchuela09@gmail.com" }]
+keywords = ["multiplex", "microscopy", "spatial-biology", "computer-vision", "image-analysis"]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-image>=0.21",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "tifffile>=2023.1",
+    "imageio>=2.31",
+    "shapely>=2.0",
+    "tqdm>=4.65",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "pre-commit>=3.7",
+]
+# H&E invasion-front detection (deep-learning stack)
+# Install with: uv sync --group ml
+ml = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "scikit-learn>=1.3",
+    "opencv-python-headless>=4.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["analysis*", "preprocessing*", "visualization*", "io*", "utils*", "hne*"]
+
+[tool.ruff]
+line-length = 100
+src = ["."]
+exclude = ["notebooks", "groovy"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+# N803/N806 allow uppercase scientific variable names (e.g. A, B for matrices)
+ignore = ["N803", "N806", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # allow assert in tests
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = false
+disallow_untyped_defs = false
+exclude = ["notebooks/", "groovy/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
