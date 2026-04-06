@@ -1,0 +1,126 @@
+"""Prediction overlay visualisation for the H&E U-Net.
+
+Produces side-by-side three-panel figures:
+  [Original RGB] | [Predicted mask] | [Ground-truth mask]
+
+Each figure is saved as an SVG file named overlay_<idx>.svg.
+"""
+
+from __future__ import annotations
+
+import os
+
+import cv2
+import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+from multiplex_pipeline.hne.config import CLASS_LABELS, IGNORE_INDEX
+
+# background=orange, invasion_front=red, stroma=green, ignore=transparent
+_CLASS_RGBA: dict[int, tuple[float, float, float, float]] = {
+    0: (1.0, 0.65, 0.0, 1.0),
+    1: (1.0, 0.0, 0.0, 1.0),
+    2: (0.0, 1.0, 0.0, 1.0),
+}
+_IGNORE_RGBA: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+
+_cmap_arr = np.zeros((256, 4))
+for _k, _v in _CLASS_RGBA.items():
+    _cmap_arr[_k] = _v
+UNET_CMAP = mcolors.ListedColormap(_cmap_arr)
+
+# For ground-truth masks that may contain IGNORE_INDEX (−1 → stored as 255 when read as uint8)
+_GT_SENTINEL = 4
+_gt_vals = {**_CLASS_RGBA, _GT_SENTINEL: _IGNORE_RGBA}
+GT_CMAP = mcolors.ListedColormap([_gt_vals[i] for i in sorted(_gt_vals)])
+
+
+def save_prediction_overlay(
+    rgb: np.ndarray,
+    pred_mask: np.ndarray,
+    gt_mask: np.ndarray,
+    output_path: str | os.PathLike,
+) -> None:
+    """Save a three-panel prediction overlay figure.
+
+    Parameters
+    ----------
+    rgb:
+        uint8 (H, W, 3) original RGB patch.
+    pred_mask:
+        Integer (H, W) array of predicted class labels.
+    gt_mask:
+        Integer (H, W) array of ground-truth labels. Pixels with value
+        IGNORE_INDEX are rendered transparently.
+    output_path:
+        Destination SVG file path. Parent directories are created if needed.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+    gt_viz = _prepare_gt(gt_mask)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    ax1, ax2, ax3 = axes
+
+    ax1.imshow(rgb)
+    ax1.set_title("Original")
+    ax1.axis("off")
+
+    ax2.imshow(pred_mask, cmap=UNET_CMAP, norm=mcolors.NoNorm())
+    ax2.set_title("Predicted")
+    ax2.axis("off")
+
+    ax3.imshow(gt_viz, cmap=GT_CMAP, norm=mcolors.NoNorm())
+    ax3.set_title("Ground Truth")
+    ax3.axis("off")
+
+    handles = [
+        mpatches.Patch(color=_CLASS_RGBA[c], label=CLASS_LABELS[c]) for c in sorted(CLASS_LABELS)
+    ]
+    fig.legend(
+        handles,
+        [CLASS_LABELS[c] for c in sorted(CLASS_LABELS)],
+        loc="center right",
+        bbox_to_anchor=(1.05, 0.8),
+        ncol=1,
+        frameon=False,
+    )
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.2)
+    fig.savefig(str(output_path), format="svg", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def save_batch_overlays(
+    rgb_paths: list[str],
+    pred_masks: list[np.ndarray],
+    gt_masks: list[np.ndarray],
+    output_dir: str | os.PathLike,
+) -> None:
+    """Save one overlay per patch in a list.
+
+    Parameters
+    ----------
+    rgb_paths:
+        List of paths to original RGB PNG files.
+    pred_masks:
+        Corresponding list of predicted label arrays.
+    gt_masks:
+        Corresponding list of ground-truth label arrays.
+    output_dir:
+        Directory where overlay_0000.svg, overlay_0001.svg, … are saved.
+    """
+    output_dir = str(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    for idx, (rgb_path, pred, gt) in enumerate(zip(rgb_paths, pred_masks, gt_masks, strict=False)):
+        rgb = cv2.cvtColor(cv2.imread(rgb_path), cv2.COLOR_BGR2RGB)
+        out_path = os.path.join(output_dir, f"overlay_{idx:04d}.svg")
+        save_prediction_overlay(rgb, pred, gt, out_path)
+
+
+def _prepare_gt(mask: np.ndarray) -> np.ndarray:
+    """Map IGNORE_INDEX pixels to the sentinel value used by GT_CMAP."""
+    m = mask.copy()
+    m[m == IGNORE_INDEX] = _GT_SENTINEL
+    return m
